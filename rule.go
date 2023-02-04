@@ -2,15 +2,27 @@ package validate
 
 import "reflect"
 
-type ApplyRuleFn func(vType reflect.Kind, value, param interface{}) bool
+type applyRuleFn func(vType reflect.Kind, value, param interface{}) bool
 
 type validateFn struct {
-	fn    ApplyRuleFn
+	fn    applyRuleFn
 	param interface{}
 }
 
 func (r validateFn) CheckPass(vType reflect.Kind, v interface{}) bool {
 	return r.fn(vType, v, r.param)
+}
+
+var fnTable = map[string]applyRuleFn{
+	"gt": isGreater,
+}
+
+func castApplyRuleFn(funcName string, param interface{}) *validateFn {
+	fn, ok := fnTable[funcName]
+	if !ok {
+		return nil
+	}
+	return &validateFn{fn, param}
 }
 
 func isGreater(vType reflect.Kind, value, param interface{}) bool {
