@@ -15,3 +15,7 @@ func interfaceToInt64(vType reflect.Kind, value interface{}) int64 {
 	}
 	return 0
 }
+
+func paramToInt64(param interface{}) int64 {
+	return param.(int64)
+}

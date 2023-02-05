@@ -2,12 +2,12 @@ package validate
 
 import (
 	"reflect"
-	"strings"
 )
 
 const TagName = "validate"
 
 type Validator struct {
+	ruleCache map[string]*structRule
 }
 
 func NewValidator() *Validator {
@@ -16,18 +16,31 @@ func NewValidator() *Validator {
 
 // parsed validation rules for each struct
 type structRule struct {
+	structName   string
 	structType   reflect.Type
 	numFields    int
-	fileds       []reflect.StructField
+	fields       []reflect.StructField
 	validateFunc [][]*validateFn
 }
 
-// parse user defined validation rules
-func parseTag(rule string) []string {
-	return strings.Split(rule, ",")
+func newStructRule(name string, sType reflect.Type) *structRule {
+	numField := sType.NumField()
+	fields := make([]reflect.StructField, 0, numField)
+	for i := 0; i < numField; i++ {
+		fields = append(fields, sType.Field(i))
+	}
+
+	return &structRule{
+		structName:   name,
+		structType:   sType,
+		numFields:    numField,
+		fields:       fields,
+		validateFunc: make([][]*validateFn, numField),
+	}
 }
 
 func (v *Validator) ValidateStruct(s interface{}) error {
+
 	return nil
 }
 
@@ -35,7 +48,7 @@ func (v *Validator) traverseFields(vStruct interface{}, rule structRule) error {
 	value := reflect.ValueOf(vStruct)
 
 	errors := make([]error, 0)
-	for i := 0; i < len(rule.fileds); i++ {
+	for i := 0; i < len(rule.fields); i++ {
 		field := value.Field(i)
 		for field.Kind() == reflect.Pointer && !field.IsNil() {
 			field = field.Elem()
@@ -45,8 +58,8 @@ func (v *Validator) traverseFields(vStruct interface{}, rule structRule) error {
 		for _, vf := range rule.validateFunc[i] {
 			if ok := vf.CheckPass(field.Kind(), fieldValue); !ok {
 				// add err
-				var newErr error
-				errors = append(errors, newErr)
+				err := ErrorValidateFalse()
+				errors = append(errors, err)
 			}
 		}
 	}
