@@ -1,6 +1,10 @@
 package validate
 
-/*
+import (
+	"fmt"
+	"testing"
+)
+
 func TestNumberCompare(t *testing.T) {
 	type TestData struct {
 		Greater int `validate:"gt=10"`
@@ -57,9 +61,7 @@ func TestNumberCompare(t *testing.T) {
 	for _, tt := range cases {
 		err := v.ValidateStruct(tt.Datas)
 		if err != tt.Expect {
-			t.Error(fmt.Sprintf("test case [%s] err, expect: %s, received: %s",
-				tt.Name, tt.Expect, err))
+			t.Errorf("test case [%s] err, expect: %s, received: %s", tt.Name, tt.Expect, err)
 		}
 	}
 }
-*/

@@ -40,14 +40,25 @@ func newStructRule(name string, sType reflect.Type) *structRule {
 }
 
 func (v *Validator) ValidateStruct(s interface{}) error {
+	value := deReferenceInterface(s)
+	if value.Kind() != reflect.Struct || value.IsNil() {
+		return ErrValidatorWrongType
+	}
 
-	return nil
+	// register struct validate rule if doesnt find rule in cache
+	if _, ok := v.ruleCache[value.Type().Name()]; !ok {
+		if err := v.RegisterStruct(s); err != nil {
+			return err
+		}
+	}
+
+	rule := v.ruleCache[value.Type().Name()]
+	return v.traverseFields(value, rule)
 }
 
-func (v *Validator) traverseFields(vStruct interface{}, rule structRule) error {
-	value := reflect.ValueOf(vStruct)
+func (v *Validator) traverseFields(value reflect.Value, rule *structRule) error {
 
-	errors := make([]error, 0)
+	// errors := make([]error, 0)
 	for i := 0; i < len(rule.fields); i++ {
 		field := value.Field(i)
 		for field.Kind() == reflect.Pointer && !field.IsNil() {
@@ -58,8 +69,7 @@ func (v *Validator) traverseFields(vStruct interface{}, rule structRule) error {
 		for _, vf := range rule.validateFunc[i] {
 			if ok := vf.CheckPass(field.Kind(), fieldValue); !ok {
 				// add err
-				err := ErrorValidateFalse()
-				errors = append(errors, err)
+				return ErrorValidateFalse(rule.fields[i].Name, vf.tag)
 			}
 		}
 	}

@@ -1,6 +1,9 @@
 package validate
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 var (
 	ErrValidatorInvalidPayload = errors.New("invalid payload")
@@ -13,9 +16,9 @@ type ValidateError struct {
 }
 
 func (e *ValidateError) Error() string {
-	return ""
+	return fmt.Sprintf("validation failed, field: %v, violate rule: %v", e.Field, e.Rule)
 }
 
-func ErrorValidateFalse() *ValidateError {
-	return &ValidateError{}
+func ErrorValidateFalse(field, rule string) *ValidateError {
+	return &ValidateError{field, rule}
 }

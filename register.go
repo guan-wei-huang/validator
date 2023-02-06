@@ -18,7 +18,7 @@ func parseTag(tag string) ([]*validateFn, error) {
 			if err != nil {
 				return nil, err
 			}
-			fs = append(fs, castApplyRuleFn(name, paramI64))
+			fs = append(fs, castApplyRuleFn(name, paramI64, r))
 		default:
 		}
 	}

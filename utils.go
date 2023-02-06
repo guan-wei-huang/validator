@@ -19,3 +19,11 @@ func interfaceToInt64(vType reflect.Kind, value interface{}) int64 {
 func paramToInt64(param interface{}) int64 {
 	return param.(int64)
 }
+
+func deReferenceInterface(v interface{}) reflect.Value {
+	value := reflect.ValueOf(v)
+	for value.Kind() == reflect.Pointer && !value.IsNil() {
+		value = value.Elem()
+	}
+	return value
+}
