@@ -11,7 +11,9 @@ type Validator struct {
 }
 
 func NewValidator() *Validator {
-	return &Validator{}
+	return &Validator{
+		ruleCache: make(map[string]*structRule),
+	}
 }
 
 // parsed validation rules for each struct
@@ -25,9 +27,9 @@ type structRule struct {
 
 func newStructRule(name string, sType reflect.Type) *structRule {
 	numField := sType.NumField()
-	fields := make([]reflect.StructField, 0, numField)
+	fields := make([]reflect.StructField, numField)
 	for i := 0; i < numField; i++ {
-		fields = append(fields, sType.Field(i))
+		fields[i] = sType.Field(i)
 	}
 
 	return &structRule{
@@ -41,18 +43,18 @@ func newStructRule(name string, sType reflect.Type) *structRule {
 
 func (v *Validator) ValidateStruct(s interface{}) error {
 	value := deReferenceInterface(s)
-	if value.Kind() != reflect.Struct || value.IsNil() {
-		return ErrValidatorWrongType
+	if value.Kind() != reflect.Struct {
+		return ErrorValidateWrongType(reflect.Struct.String())
 	}
 
 	// register struct validate rule if doesnt find rule in cache
-	if _, ok := v.ruleCache[value.Type().Name()]; !ok {
-		if err := v.RegisterStruct(s); err != nil {
+	if _, ok := v.ruleCache[value.Type().String()]; !ok {
+		if err := v.registerStruct(value); err != nil {
 			return err
 		}
 	}
 
-	rule := v.ruleCache[value.Type().Name()]
+	rule := v.ruleCache[value.Type().String()]
 	return v.traverseFields(value, rule)
 }
 

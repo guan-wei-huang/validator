@@ -27,15 +27,14 @@ func parseTag(tag string) ([]*validateFn, error) {
 }
 
 func (v *Validator) RegisterStruct(s interface{}) error {
-	val := reflect.ValueOf(s)
-	for val.Kind() == reflect.Pointer && !val.IsNil() {
-		val = val.Elem()
+	value := deReferenceInterface(s)
+	if value.Kind() != reflect.Struct {
+		return ErrorValidateWrongType(reflect.Struct.String())
 	}
+	return v.registerStruct(value)
+}
 
-	if val.Kind() != reflect.Struct {
-		return ErrValidatorWrongType
-	}
-
+func (v *Validator) registerStruct(val reflect.Value) error {
 	valType := val.Type()
 	rule := newStructRule(valType.String(), valType)
 	for i := 0; i < valType.NumField(); i++ {
@@ -53,6 +52,6 @@ func (v *Validator) RegisterStruct(s interface{}) error {
 	}
 
 	// push into cache
-	v.ruleCache[valType.String()] = rule
+	v.ruleCache[val.Type().String()] = rule
 	return nil
 }
