@@ -11,7 +11,7 @@ func parseTag(tag string) ([]*validateFn, error) {
 	rules := strings.Split(tag, ",")
 	fs := make([]*validateFn, 0, len(rules))
 	for _, r := range rules {
-		name, param, _ := strings.Cut(r, ":")
+		name, param, _ := strings.Cut(r, "=")
 		switch name {
 		case "gt", "eq":
 			paramI64, err := strconv.ParseInt(param, 10, 64)
@@ -53,5 +53,6 @@ func (v *Validator) registerStruct(val reflect.Value) error {
 
 	// push into cache
 	v.ruleCache[val.Type().String()] = rule
+	// log.Printf("%+v", rule)
 	return nil
 }
