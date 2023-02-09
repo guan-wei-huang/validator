@@ -10,6 +10,10 @@ var (
 	ErrValidatorWrongType      = errors.New("wrong type")
 )
 
+func ErrorValidateInvalidTag() error {
+
+}
+
 func ErrorValidateWrongType(expect string) error {
 	return fmt.Errorf("invalid validation error, expect value type: %v, but got nil", expect)
 }

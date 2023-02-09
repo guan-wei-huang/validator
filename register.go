@@ -2,23 +2,22 @@ package validate
 
 import (
 	"reflect"
-	"strconv"
 	"strings"
 )
 
-// parse tag and return slice of validateFn
-func parseTag(tag string) ([]*validateFn, error) {
+// parseTag parse tag and return slice of validateFn
+func parseTag(fieldType reflect.Type, tag string) ([]*validateFn, error) {
 	rules := strings.Split(tag, ",")
 	fs := make([]*validateFn, 0, len(rules))
 	for _, r := range rules {
 		name, param, _ := strings.Cut(r, "=")
 		switch name {
 		case "gt", "eq":
-			paramI64, err := strconv.ParseInt(param, 10, 64)
+			p, err := parseStringToType(fieldType.Kind(), param)
 			if err != nil {
 				return nil, err
 			}
-			fs = append(fs, castApplyRuleFn(name, paramI64, r))
+			fs = append(fs, castApplyRuleFn(name, p, r))
 		default:
 		}
 	}
@@ -44,7 +43,7 @@ func (v *Validator) registerStruct(val reflect.Value) error {
 			continue
 		}
 
-		fs, err := parseTag(tag)
+		fs, err := parseTag(field.Type, tag)
 		if err != nil {
 			return err
 		}
@@ -53,6 +52,5 @@ func (v *Validator) registerStruct(val reflect.Value) error {
 
 	// push into cache
 	v.ruleCache[val.Type().String()] = rule
-	// log.Printf("%+v", rule)
 	return nil
 }
