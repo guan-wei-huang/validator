@@ -17,6 +17,7 @@ func (r validateFn) CheckPass(vType reflect.Kind, v interface{}) bool {
 var fnTable = map[string]applyRuleFn{
 	"gt": isGreater,
 	"eq": isEqual,
+	"ls": isLess,
 }
 
 func castApplyRuleFn(funcName string, param interface{}, tag string) *validateFn {
@@ -32,11 +33,33 @@ func isGreater(vType reflect.Kind, value, param interface{}) bool {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return parseToInt64(vType, value) > paramToInt64(param)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return
+		return parseToUint64(vType, value) > param.(uint64)
+	case reflect.Float32, reflect.Float64:
+		return parseToFloat64(vType, value) > param.(float64)
 	}
-
-	return true
+	return false
 }
 
 func isEqual(vType reflect.Kind, value, param interface{}) bool {
+	switch vType {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return parseToInt64(vType, value) == paramToInt64(param)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return parseToUint64(vType, value) == param.(uint64)
+	case reflect.Float32, reflect.Float64:
+		return parseToFloat64(vType, value) == param.(float64)
+	}
+	return false
+}
+
+func isLess(vType reflect.Kind, value, param interface{}) bool {
+	switch vType {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return parseToInt64(vType, value) < paramToInt64(param)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return parseToUint64(vType, value) < param.(uint64)
+	case reflect.Float32, reflect.Float64:
+		return parseToFloat64(vType, value) < param.(float64)
+	}
+	return false
 }
