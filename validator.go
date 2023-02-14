@@ -4,7 +4,7 @@ import (
 	"reflect"
 )
 
-const TagName = "validate"
+const TAG_NAME = "validate"
 
 type Validator struct {
 	ruleCache map[string]*structRule
@@ -59,8 +59,7 @@ func (v *Validator) ValidateStruct(s interface{}) error {
 }
 
 func (v *Validator) traverseFields(value reflect.Value, rule *structRule) error {
-
-	// errors := make([]error, 0)
+	var errors ValidateErrors
 	for i := 0; i < len(rule.fields); i++ {
 		field := value.Field(i)
 		for field.Kind() == reflect.Pointer && !field.IsNil() {
@@ -70,11 +69,13 @@ func (v *Validator) traverseFields(value reflect.Value, rule *structRule) error 
 		fieldValue := field.Interface()
 		for _, vf := range rule.validateFunc[i] {
 			if ok := vf.CheckPass(field.Kind(), fieldValue); !ok {
-				// add err
-				return ErrorValidateFalse(rule.fields[i].Name, vf.tag)
+				errors = append(errors, ErrorValidateFalse(rule.fields[i].Name, vf.tag))
 			}
 		}
 	}
 
-	return nil
+	if len(errors) == 0 {
+		return nil
+	}
+	return errors
 }
