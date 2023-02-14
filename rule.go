@@ -1,6 +1,8 @@
 package validate
 
-import "reflect"
+import (
+	"reflect"
+)
 
 type applyRuleFn func(vType reflect.Kind, value, param interface{}) bool
 
@@ -15,9 +17,11 @@ func (r validateFn) CheckPass(vType reflect.Kind, v interface{}) bool {
 }
 
 var fnTable = map[string]applyRuleFn{
-	"gt": isGreater,
-	"eq": isEqual,
-	"ls": isLess,
+	"gt":       isGreater,
+	"eq":       isEqual,
+	"ls":       isLess,
+	"len":      isLen,
+	"required": isRequired,
 }
 
 func castApplyRuleFn(funcName string, param interface{}, tag string) *validateFn {
@@ -28,10 +32,12 @@ func castApplyRuleFn(funcName string, param interface{}, tag string) *validateFn
 	return &validateFn{fn, param, tag}
 }
 
+// if vType is excluded in switch case, it must be reflect.Pointer.
+// happen when the field is pointer type and user given value is a nil pointer.
 func isGreater(vType reflect.Kind, value, param interface{}) bool {
 	switch vType {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return parseToInt64(vType, value) > paramToInt64(param)
+		return parseToInt64(vType, value) > param.(int64)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return parseToUint64(vType, value) > param.(uint64)
 	case reflect.Float32, reflect.Float64:
@@ -43,7 +49,7 @@ func isGreater(vType reflect.Kind, value, param interface{}) bool {
 func isEqual(vType reflect.Kind, value, param interface{}) bool {
 	switch vType {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return parseToInt64(vType, value) == paramToInt64(param)
+		return parseToInt64(vType, value) == param.(int64)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return parseToUint64(vType, value) == param.(uint64)
 	case reflect.Float32, reflect.Float64:
@@ -55,11 +61,33 @@ func isEqual(vType reflect.Kind, value, param interface{}) bool {
 func isLess(vType reflect.Kind, value, param interface{}) bool {
 	switch vType {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return parseToInt64(vType, value) < paramToInt64(param)
+		return parseToInt64(vType, value) < param.(int64)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return parseToUint64(vType, value) < param.(uint64)
 	case reflect.Float32, reflect.Float64:
 		return parseToFloat64(vType, value) < param.(float64)
+	}
+	return false
+}
+
+func isLen(vType reflect.Kind, value, param interface{}) bool {
+	size := param.(int)
+	switch vType {
+	case reflect.String:
+		return len(value.(string)) == size
+	case reflect.Array, reflect.Slice:
+		return reflect.TypeOf(value).Len() == size
+	}
+	return false
+}
+
+// isRequired param stores whether origin field's type is pointer or not.
+// if it's ptr, verify that value is not nil. otherwise, check that value is not
+// empty value
+func isRequired(vType reflect.Kind, value, param interface{}) bool {
+	switch vType {
+	case reflect.Pointer:
+		return value == nil
 	}
 	return false
 }
