@@ -28,7 +28,7 @@ func parseTag(fieldType reflect.Type, tag string, isPtr bool) ([]*validateFn, er
 }
 
 func (v *Validator) RegisterStruct(s interface{}) error {
-	value := deReferenceInterface(s)
+	value := deReference(s)
 	if value.Kind() != reflect.Struct {
 		return ErrorValidateWrongType(reflect.Struct.String())
 	}
