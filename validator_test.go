@@ -7,6 +7,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type TestUnexported struct {
+	num      int         `validate:"required,gt=10"`
+	str      string      `validate:"required,len=4"`
+	intPtr   *int        `validate:"required,eq=10"`
+	strPtr   *string     `validate:"required"`
+	intSlice []int       `validate:"required,len=2"`
+	m        map[int]int `validate:"required"`
+	c        chan int    `validate:"required"`
+}
+
 func toPtr[T int | string](v T) *T {
 	return &v
 }
@@ -89,19 +99,9 @@ func TestRequired(t *testing.T) {
 }
 
 func TestUnexportedField(t *testing.T) {
-	type TestData struct {
-		num      int         `validate:"required"`
-		str      string      `validate:"required"`
-		intPtr   *int        `validate:"required"`
-		strPtr   *string     `validate:"required"`
-		intSlice []int       `validate:"required"`
-		m        map[int]int `validate:"required"`
-		c        chan int    `validate:"required"`
-	}
-
 	validate := New()
 	assert.NotPanics(t, func() {
-		validate.ValidateStruct(TestData{
+		validate.ValidateStruct(TestUnexported{
 			num:      11,
 			str:      "xxx",
 			intPtr:   toPtr(2),
@@ -110,6 +110,66 @@ func TestUnexportedField(t *testing.T) {
 			m:        make(map[int]int),
 			c:        make(chan int, 1),
 		})
+	})
+}
+
+func TestNestedStruct(t *testing.T) {
+	type NestedStruct struct {
+		Num int    `validate:"gt=10,required"`
+		Str string `validate:"len=4,required"`
+	}
+	type TestData struct {
+		Num    int          `validate:"gt=10"`
+		Nested NestedStruct `validate:"required"`
+	}
+
+	validate := New()
+	t.Run("success case", func(t *testing.T) {
+		err := validate.ValidateStruct(TestData{
+			Num: 11,
+			Nested: NestedStruct{
+				Num: 11,
+				Str: "test",
+			},
+		})
+		assert.NoError(t, err)
+	})
+
+	t.Run("failed inside nested struct", func(t *testing.T) {
+		err := validate.ValidateStruct(TestData{
+			Num: 9,
+			Nested: NestedStruct{
+				Num: 9,
+				Str: "small",
+			},
+		})
+		assert.ErrorIs(t, err, combinateValidateError(
+			[]string{"Num", "", ""},
+			[]string{"gt=10", "", ""},
+		))
+	})
+
+	t.Run("unexported field in nested struct", func(t *testing.T) {
+		type TestData struct {
+			Num    int            `validate:"gt=10"`
+			Nested TestUnexported `validate:"required"`
+		}
+		err := validate.ValidateStruct(TestData{
+			Num: 8,
+			Nested: TestUnexported{
+				num:      11,
+				str:      "xxx",
+				intPtr:   toPtr(2),
+				strPtr:   toPtr("xx"),
+				intSlice: []int{1},
+				m:        make(map[int]int),
+				c:        make(chan int, 1),
+			},
+		})
+		assert.ErrorIs(t, err, combinateValidateError(
+			[]string{"Num", "", ""},
+			[]string{"gt=10", "", ""},
+		))
 	})
 }
 
