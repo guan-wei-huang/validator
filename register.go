@@ -19,7 +19,7 @@ func parseTag(fieldType reflect.Type, tag string, isPtr bool) ([]*validateFn, er
 			}
 			fs = append(fs, castApplyRuleFn(name, p, r))
 		case "required":
-
+			fs = append(fs, castApplyRuleFn(name, isPtr, r))
 		default:
 		}
 	}

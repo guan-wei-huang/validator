@@ -10,7 +10,7 @@ type Validator struct {
 	ruleCache map[string]*structRule
 }
 
-func NewValidator() *Validator {
+func New() *Validator {
 	return &Validator{
 		ruleCache: make(map[string]*structRule),
 	}

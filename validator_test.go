@@ -23,7 +23,7 @@ func combinateValidateError(fields, rules []string) error {
 	return es
 }
 
-func TestIntValidation(t *testing.T) {
+func TestNumberCompare(t *testing.T) {
 	type TestData struct {
 		IntGt    int     `validate:"gt=10"`
 		IntPtrGt *int    `validate:"gt=10"`
@@ -32,8 +32,8 @@ func TestIntValidation(t *testing.T) {
 		IntLs    int     `validate:"ls=10"`
 	}
 
-	v := NewValidator()
-	err := v.ValidateStruct(TestData{
+	validate := New()
+	err := validate.ValidateStruct(TestData{
 		IntGt:    11,
 		IntPtrGt: toPtr(11),
 		FloatGt:  10.3,
@@ -42,7 +42,7 @@ func TestIntValidation(t *testing.T) {
 	})
 	assert.ErrorIs(t, err, nil)
 
-	err = v.ValidateStruct(TestData{
+	err = validate.ValidateStruct(TestData{
 		IntGt:    9,
 		IntPtrGt: toPtr(9),
 		FloatGt:  9.2,
@@ -55,32 +55,67 @@ func TestIntValidation(t *testing.T) {
 	).Error())
 }
 
-func BenchmarkNumberCompare(b *testing.B) {
+func TestRequired(t *testing.T) {
 	type TestData struct {
-		Greater int `validate:"gt=10"`
+		Num      int         `validate:"required"`
+		Str      string      `validate:"required"`
+		NumSlice []int       `validate:"required"`
+		NumPtr   *int        `validate:"required"`
+		StrPtr   *string     `validate:"required"`
+		M        map[int]int `validate:"required"`
+		C        chan int    `validate:"required"`
 	}
-	v := NewValidator()
+
+	validate := New()
+	err := validate.ValidateStruct(TestData{
+		Num:      1,
+		Str:      "test",
+		NumSlice: []int{2, 3},
+		NumPtr:   toPtr(0),
+		StrPtr:   toPtr(""),
+		M:        map[int]int{1: 2},
+		C:        make(chan int),
+	})
+	assert.ErrorIs(t, err, nil)
+
+	err = validate.ValidateStruct(TestData{
+		Num: 0,
+		Str: "",
+	})
+	assert.EqualError(t, err, combinateValidateError(
+		[]string{"Num", "Str", "NumSlice", "NumPtr", "StrPtr", "M", "C"},
+		[]string{"required", "required", "required", "required", "required", "required", "required"},
+	).Error())
+}
+
+func BenchmarkPackage(b *testing.B) {
+	type TestData struct {
+		IntGt   int  `validate:"gt=10"`
+		IntEq   int  `validate:"eq=10"`
+		Require *int `validate:"required"`
+	}
+	validate := New()
 	for i := 0; i < b.N; i++ {
-		v.ValidateStruct(TestData{
-			Greater: 11,
-		})
-		v.ValidateStruct(TestData{
-			Greater: 9,
+		validate.ValidateStruct(TestData{
+			IntGt:   12,
+			IntEq:   10,
+			Require: toPtr(2),
 		})
 	}
 }
 
-func BenchmarkValidateNumberCompare(b *testing.B) {
+func BenchmarkV10(b *testing.B) {
 	type TestData struct {
-		Greater int `validate:"gt=10"`
+		IntGt   int  `validate:"gt=10"`
+		IntEq   int  `validate:"eq=10"`
+		Require *int `validate:"required"`
 	}
 	v := v10.New()
 	for i := 0; i < b.N; i++ {
 		v.Struct(TestData{
-			Greater: 11,
-		})
-		v.Struct(TestData{
-			Greater: 9,
+			IntGt:   12,
+			IntEq:   10,
+			Require: toPtr(2),
 		})
 	}
 }

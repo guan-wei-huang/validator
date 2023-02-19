@@ -85,9 +85,9 @@ func isLen(vType reflect.Kind, value, param interface{}) bool {
 // if it's ptr, verify that value is not nil. otherwise, check that value is not
 // empty value
 func isRequired(vType reflect.Kind, value, param interface{}) bool {
-	switch vType {
-	case reflect.Pointer:
-		return value == nil
+	if isPtr := param.(bool); isPtr {
+		return vType != reflect.Pointer
 	}
-	return false
+
+	return !reflect.ValueOf(value).IsZero()
 }
