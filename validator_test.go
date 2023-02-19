@@ -25,7 +25,7 @@ func combinateValidateError(fields, rules []string) error {
 
 func TestNumberCompare(t *testing.T) {
 	type TestData struct {
-		IntGt    int     `validate:"gt=10"`
+		intGt    int     `validate:"gt=10"`
 		IntPtrGt *int    `validate:"gt=10"`
 		FloatGt  float32 `validate:"gt=10.1"`
 		IntEq    int     `validate:"eq=10"`
@@ -34,7 +34,7 @@ func TestNumberCompare(t *testing.T) {
 
 	validate := New()
 	err := validate.ValidateStruct(TestData{
-		IntGt:    11,
+		intGt:    11,
 		IntPtrGt: toPtr(11),
 		FloatGt:  10.3,
 		IntEq:    10,
@@ -43,14 +43,14 @@ func TestNumberCompare(t *testing.T) {
 	assert.ErrorIs(t, err, nil)
 
 	err = validate.ValidateStruct(TestData{
-		IntGt:    9,
+		intGt:    9,
 		IntPtrGt: toPtr(9),
 		FloatGt:  9.2,
 		IntEq:    9,
 		IntLs:    11,
 	})
 	assert.EqualError(t, err, combinateValidateError(
-		[]string{"IntGt", "IntPtrGt", "FloatGt", "IntEq", "IntLs"},
+		[]string{"intGt", "IntPtrGt", "FloatGt", "IntEq", "IntLs"},
 		[]string{"gt=10", "gt=10", "gt=10.1", "eq=10", "ls=10"},
 	).Error())
 }
@@ -86,6 +86,31 @@ func TestRequired(t *testing.T) {
 		[]string{"Num", "Str", "NumSlice", "NumPtr", "StrPtr", "M", "C"},
 		[]string{"required", "required", "required", "required", "required", "required", "required"},
 	).Error())
+}
+
+func TestUnexportedField(t *testing.T) {
+	type TestData struct {
+		num      int         `validate:"required"`
+		str      string      `validate:"required"`
+		intPtr   *int        `validate:"required"`
+		strPtr   *string     `validate:"required"`
+		intSlice []int       `validate:"required"`
+		m        map[int]int `validate:"required"`
+		c        chan int    `validate:"required"`
+	}
+
+	validate := New()
+	assert.NotPanics(t, func() {
+		validate.ValidateStruct(TestData{
+			num:      11,
+			str:      "xxx",
+			intPtr:   toPtr(2),
+			strPtr:   toPtr("xx"),
+			intSlice: []int{1},
+			m:        make(map[int]int),
+			c:        make(chan int, 1),
+		})
+	})
 }
 
 func BenchmarkPackage(b *testing.B) {
