@@ -21,7 +21,7 @@ func toPtr[T int | string](v T) *T {
 	return &v
 }
 
-func combinateValidateError(fields, rules []string) error {
+func combineValidateError(fields, rules []string) error {
 	if len(fields) != len(rules) {
 		return nil
 	}
@@ -59,8 +59,8 @@ func TestNumberCompare(t *testing.T) {
 		IntEq:    9,
 		IntLs:    11,
 	})
-	assert.EqualError(t, err, combinateValidateError(
-		[]string{"intGt", "IntPtrGt", "FloatGt", "IntEq", "IntLs"},
+	assert.EqualError(t, err, combineValidateError(
+		[]string{"TestData.intGt", "TestData.IntPtrGt", "TestData.FloatGt", "TestData.IntEq", "TestData.IntLs"},
 		[]string{"gt=10", "gt=10", "gt=10.1", "eq=10", "ls=10"},
 	).Error())
 }
@@ -92,8 +92,9 @@ func TestRequired(t *testing.T) {
 		Num: 0,
 		Str: "",
 	})
-	assert.EqualError(t, err, combinateValidateError(
-		[]string{"Num", "Str", "NumSlice", "NumPtr", "StrPtr", "M", "C"},
+	assert.EqualError(t, err, combineValidateError(
+		[]string{"TestData.Num", "TestData.Str", "TestData.NumSlice", "TestData.NumPtr", "TestData.StrPtr",
+			"TestData.M", "TestData.C"},
 		[]string{"required", "required", "required", "required", "required", "required", "required"},
 	).Error())
 }
@@ -143,8 +144,8 @@ func TestNestedStruct(t *testing.T) {
 				Str: "small",
 			},
 		})
-		assert.EqualError(t, err, combinateValidateError(
-			[]string{"validate.TestData.Num", "validate.NestedStruct.Num", "validate.NestedStruct.Str"},
+		assert.EqualError(t, err, combineValidateError(
+			[]string{"TestData.Num", "TestData.Nested.Num", "TestData.Nested.Str"},
 			[]string{"gt=10", "gt=10", "len=4"},
 		).Error())
 	})
@@ -160,15 +161,15 @@ func TestNestedStruct(t *testing.T) {
 		err := validate.ValidateStruct(UndefNested{
 			Num: 11,
 			Nested: struct {
-				Num int    "validate:\"gt=10\""
-				Str string "validate:\"required\""
+				Num int    `validate:"gt=10"`
+				Str string `validate:"required"`
 			}{
 				Num: 2,
 				Str: "",
 			},
 		})
-		assert.EqualError(t, err, combinateValidateError(
-			[]string{"validate.UndefNested-1.Num", "validate.UndefNested-1.Str"},
+		assert.EqualError(t, err, combineValidateError(
+			[]string{"UndefNested.Nested.Num", "UndefNested.Nested.Str"},
 			[]string{"gt=10", "required"},
 		).Error())
 	})
@@ -190,9 +191,8 @@ func TestNestedStruct(t *testing.T) {
 				c:        make(chan int, 1),
 			},
 		})
-		assert.EqualError(t, err, combinateValidateError(
-			[]string{"validate.Case.Num", "validate.TestUnexported.str", "validate.TestUnexported.intPtr",
-				"validate.TestUnexported.intSlice"},
+		assert.EqualError(t, err, combineValidateError(
+			[]string{"Case.Num", "Case.Nested.str", "Case.Nested.intPtr", "Case.Nested.intSlice"},
 			[]string{"gt=10", "len=4", "eq=10", "len=2"},
 		).Error())
 	})
