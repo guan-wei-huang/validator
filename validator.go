@@ -63,16 +63,17 @@ func (v *Validator) ValidateStruct(s interface{}) error {
 	}
 
 	rule := v.ruleCache[valueType.String()]
-	if err := v.traverseFields(value, rule); err != nil {
+	if err := v.traverseFields(value, rule, valueType.Name()); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (v *Validator) traverseFields(value reflect.Value, rule *structRule) ValidateErrors {
+func (v *Validator) traverseFields(value reflect.Value, rule *structRule, levelName string) ValidateErrors {
 	var errors ValidateErrors
 
 	if rule.hasUnexported {
+		// reallocate an opened value
 		tmp := reflect.New(value.Type()).Elem()
 		tmp.Set(value)
 		value = tmp
@@ -92,14 +93,14 @@ func (v *Validator) traverseFields(value reflect.Value, rule *structRule) Valida
 
 		for _, vf := range rule.validateFunc[i] {
 			if !vf.CheckPass(fieldKind, fieldValue) {
-				fieldName := fmt.Sprintf("%v.%v", rule.structName, fieldType.Name)
-				errors = append(errors, ErrorValidateFalse(fieldName, vf.tag))
+				name := fmt.Sprintf("%v.%v", levelName, fieldType.Name)
+				errors = append(errors, ErrorValidateFalse(name, vf.tag))
 			}
 		}
 
 		if fieldKind == reflect.Struct {
 			nestedRule := v.ruleCache[getNestedName(fieldType.Type, rule.structName, i)]
-			errors = append(errors, v.traverseFields(field, nestedRule)...)
+			errors = append(errors, v.traverseFields(field, nestedRule, fmt.Sprintf("%v.%v", levelName, fieldType.Name))...)
 		}
 	}
 
