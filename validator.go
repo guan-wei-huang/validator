@@ -1,6 +1,7 @@
 package validate
 
 import (
+	"fmt"
 	"reflect"
 	"unsafe"
 )
@@ -54,18 +55,21 @@ func (v *Validator) ValidateStruct(s interface{}) error {
 	}
 
 	// register struct validate rule if cannot find rule in cache
-	valueType := value.Type().String()
-	if _, ok := v.ruleCache[valueType]; !ok {
-		if err := v.registerStruct(value); err != nil {
+	valueType := value.Type()
+	if _, ok := v.ruleCache[valueType.String()]; !ok {
+		if err := v.registerStruct(valueType); err != nil {
 			return err
 		}
 	}
 
-	rule := v.ruleCache[valueType]
-	return v.traverseFields(value, rule)
+	rule := v.ruleCache[valueType.String()]
+	if err := v.traverseFields(value, rule); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (v *Validator) traverseFields(value reflect.Value, rule *structRule) error {
+func (v *Validator) traverseFields(value reflect.Value, rule *structRule) ValidateErrors {
 	var errors ValidateErrors
 
 	if rule.hasUnexported {
@@ -83,12 +87,19 @@ func (v *Validator) traverseFields(value reflect.Value, rule *structRule) error 
 		for field.Kind() == reflect.Pointer && !field.IsNil() {
 			field = field.Elem()
 		}
+		fieldKind := field.Kind()
 		fieldValue := field.Interface()
 
 		for _, vf := range rule.validateFunc[i] {
-			if !vf.CheckPass(field.Kind(), fieldValue) {
-				errors = append(errors, ErrorValidateFalse(fieldType.Name, vf.tag))
+			if !vf.CheckPass(fieldKind, fieldValue) {
+				fieldName := fmt.Sprintf("%v.%v", rule.structName, fieldType.Name)
+				errors = append(errors, ErrorValidateFalse(fieldName, vf.tag))
 			}
+		}
+
+		if fieldKind == reflect.Struct {
+			nestedRule := v.ruleCache[getNestedName(fieldType.Type, rule.structName, i)]
+			errors = append(errors, v.traverseFields(field, nestedRule)...)
 		}
 	}
 

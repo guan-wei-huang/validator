@@ -143,18 +143,42 @@ func TestNestedStruct(t *testing.T) {
 				Str: "small",
 			},
 		})
-		assert.ErrorIs(t, err, combinateValidateError(
-			[]string{"Num", "", ""},
-			[]string{"gt=10", "", ""},
-		))
+		assert.EqualError(t, err, combinateValidateError(
+			[]string{"validate.TestData.Num", "validate.NestedStruct.Num", "validate.NestedStruct.Str"},
+			[]string{"gt=10", "gt=10", "len=4"},
+		).Error())
+	})
+
+	t.Run("undefined nested struct", func(t *testing.T) {
+		type UndefNested struct {
+			Num    int `validate:"gt=10"`
+			Nested struct {
+				Num int    `validate:"gt=10"`
+				Str string `validate:"required"`
+			}
+		}
+		err := validate.ValidateStruct(UndefNested{
+			Num: 11,
+			Nested: struct {
+				Num int    "validate:\"gt=10\""
+				Str string "validate:\"required\""
+			}{
+				Num: 2,
+				Str: "",
+			},
+		})
+		assert.EqualError(t, err, combinateValidateError(
+			[]string{"validate.UndefNested-1.Num", "validate.UndefNested-1.Str"},
+			[]string{"gt=10", "required"},
+		).Error())
 	})
 
 	t.Run("unexported field in nested struct", func(t *testing.T) {
-		type TestData struct {
+		type Case struct {
 			Num    int            `validate:"gt=10"`
 			Nested TestUnexported `validate:"required"`
 		}
-		err := validate.ValidateStruct(TestData{
+		err := validate.ValidateStruct(Case{
 			Num: 8,
 			Nested: TestUnexported{
 				num:      11,
@@ -166,10 +190,11 @@ func TestNestedStruct(t *testing.T) {
 				c:        make(chan int, 1),
 			},
 		})
-		assert.ErrorIs(t, err, combinateValidateError(
-			[]string{"Num", "", ""},
-			[]string{"gt=10", "", ""},
-		))
+		assert.EqualError(t, err, combinateValidateError(
+			[]string{"validate.Case.Num", "validate.TestUnexported.str", "validate.TestUnexported.intPtr",
+				"validate.TestUnexported.intSlice"},
+			[]string{"gt=10", "len=4", "eq=10", "len=2"},
+		).Error())
 	})
 }
 

@@ -1,6 +1,7 @@
 package validate
 
 import (
+	"fmt"
 	"reflect"
 	"strconv"
 )
@@ -95,4 +96,12 @@ func deReference(v interface{}) reflect.Value {
 		value = value.Elem()
 	}
 	return value
+}
+
+func getNestedName(parentType reflect.Type, parentName string, idx int) string {
+	name := parentType.String()
+	if parentType.Name() == "" {
+		name = fmt.Sprintf("%v-%v", parentName, idx)
+	}
+	return name
 }

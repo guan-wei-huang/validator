@@ -71,12 +71,14 @@ func isLess(vType reflect.Kind, value, param interface{}) bool {
 }
 
 func isLen(vType reflect.Kind, value, param interface{}) bool {
-	size := param.(int)
+	size := int(param.(int64))
 	switch vType {
 	case reflect.String:
 		return len(value.(string)) == size
-	case reflect.Array, reflect.Slice:
-		return reflect.TypeOf(value).Len() == size
+	case reflect.Array:
+		return reflect.ValueOf(value).Len() == size
+	case reflect.Slice:
+		return reflect.ValueOf(value).Len() == size
 	}
 	return false
 }
