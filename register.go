@@ -80,6 +80,6 @@ func (v *Validator) registerStruct(vType reflect.Type, name ...string) error {
 	}
 
 	// push into cache
-	v.ruleCache[ruleName] = rule
+	v.storeRule(ruleName, rule)
 	return nil
 }

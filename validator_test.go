@@ -114,6 +114,27 @@ func TestUnexportedField(t *testing.T) {
 	})
 }
 
+func TestRepeatNameStruct(t *testing.T) {
+	validate := New()
+	type TestData struct {
+		Num int `validate:"gt=10,required"`
+	}
+	err := validate.ValidateStruct(TestData{
+		Num: 3,
+	})
+	assert.EqualError(t, err, combineValidateError([]string{"TestData.Num"}, []string{"gt=10"}).Error())
+
+	t.Run("different struct with the same name", func(t *testing.T) {
+		type TestData struct {
+			Str string `validate:"len=3,required"`
+		}
+		err := validate.ValidateStruct(TestData{
+			Str: "test",
+		})
+		assert.EqualError(t, err, combineValidateError([]string{"TestData.Str"}, []string{"len=3"}).Error())
+	})
+}
+
 func TestNestedStruct(t *testing.T) {
 	type NestedStruct struct {
 		Num int    `validate:"gt=10,required"`

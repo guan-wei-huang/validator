@@ -3,19 +3,19 @@ package validate
 import (
 	"fmt"
 	"reflect"
+	"sync"
 	"unsafe"
 )
 
 const TAG_NAME = "validate"
 
 type Validator struct {
-	ruleCache map[string]*structRule
+	ruleCache sync.Map
+	// ruleCache map[string]*structRule
 }
 
 func New() *Validator {
-	return &Validator{
-		ruleCache: make(map[string]*structRule),
-	}
+	return &Validator{}
 }
 
 // parsed validation rules for each struct
@@ -48,6 +48,17 @@ func newStructRule(name string, sType reflect.Type) *structRule {
 	}
 }
 
+func (v *Validator) loadRule(name string) *structRule {
+	if rule, ok := v.ruleCache.Load(name); ok {
+		return rule.(*structRule)
+	}
+	return nil
+}
+
+func (v *Validator) storeRule(name string, rule *structRule) {
+	v.ruleCache.Store(name, rule)
+}
+
 func (v *Validator) ValidateStruct(s interface{}) error {
 	value := deReference(s)
 	if value.Kind() != reflect.Struct {
@@ -56,13 +67,13 @@ func (v *Validator) ValidateStruct(s interface{}) error {
 
 	// register struct validate rule if cannot find rule in cache
 	valueType := value.Type()
-	if _, ok := v.ruleCache[valueType.String()]; !ok {
+	if rule := v.loadRule(valueType.String()); rule == nil || (rule != nil && rule.structType != valueType) {
 		if err := v.registerStruct(valueType); err != nil {
 			return err
 		}
 	}
 
-	rule := v.ruleCache[valueType.String()]
+	rule := v.loadRule(valueType.String())
 	if err := v.traverseFields(value, rule, valueType.Name()); err != nil {
 		return err
 	}
@@ -99,7 +110,7 @@ func (v *Validator) traverseFields(value reflect.Value, rule *structRule, levelN
 		}
 
 		if fieldKind == reflect.Struct {
-			nestedRule := v.ruleCache[getNestedName(fieldType.Type, rule.structName, i)]
+			nestedRule := v.loadRule(getNestedName(fieldType.Type, rule.structName, i))
 			errors = append(errors, v.traverseFields(field, nestedRule, fmt.Sprintf("%v.%v", levelName, fieldType.Name))...)
 		}
 	}
