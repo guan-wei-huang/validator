@@ -1,21 +1,15 @@
 package validate
 
 import (
-	"errors"
 	"fmt"
 )
 
-var (
-	ErrValidatorInvalidPayload = errors.New("invalid payload")
-	ErrValidatorWrongType      = errors.New("wrong type")
-)
-
-func ErrorValidateInvalidTag() error {
-	return nil
-}
-
 func ErrorValidateWrongType(expect string) error {
 	return fmt.Errorf("invalid validation error, expect value type: %v, but got nil", expect)
+}
+
+func ErrorValidateUnsupportedTag(tag string) error {
+	return fmt.Errorf("got unsupported tag: %v", tag)
 }
 
 type ValidateError struct {

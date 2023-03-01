@@ -31,25 +31,68 @@ func parseTag(fieldType reflect.Type, tag string, isPtr bool) ([]*validateFn, er
 		case "required":
 			fs = append(fs, castApplyRuleFn(name, isPtr, r))
 		default:
+			return nil, ErrorValidateUnsupportedTag(r)
 		}
 	}
 
 	return fs, nil
 }
 
-func (v *Validator) RegisterStruct(s interface{}) error {
-	value := deReference(s)
+func (v *Validator) RegisterMapRule(s interface{}, ruleMap map[string]interface{}) error {
+	value := deref(s)
 	if value.Kind() != reflect.Struct {
 		return ErrorValidateWrongType(reflect.Struct.String())
 	}
-	return v.registerStruct(value.Type())
+	vType := value.Type()
+	return v.registerMapRule(vType, ruleMap, vType.String())
 }
 
-func (v *Validator) registerStruct(vType reflect.Type, name ...string) error {
-	ruleName := vType.String()
-	if len(name) != 0 {
-		ruleName = name[0]
+func (v *Validator) registerMapRule(vType reflect.Type, ruleMap map[string]interface{}, ruleName string) error {
+	rule := newStructRule(ruleName, vType)
+	for i := 0; i < vType.NumField(); i++ {
+		field := vType.Field(i)
+		fieldType := field.Type
+		fieldRule, exist := ruleMap[field.Name]
+		if !exist {
+			continue
+		}
+
+		isPtr := false
+		for fieldType.Kind() == reflect.Pointer {
+			isPtr = true
+			fieldType = fieldType.Elem()
+		}
+
+		// nested map rule
+		if nestedRule, ok := fieldRule.(map[string]interface{}); ok {
+			nestedName := getNestedName(fieldType, ruleName, i)
+			if err := v.registerMapRule(fieldType, nestedRule, nestedName); err != nil {
+				return err
+			}
+		}
+		if strRule, ok := fieldRule.(string); ok {
+			fs, err := parseTag(fieldType, strRule, isPtr)
+			if err != nil {
+				return err
+			}
+			rule.validateFunc[i] = fs
+		}
 	}
+
+	v.storeRule(ruleName, rule)
+	return nil
+}
+
+func (v *Validator) RegisterStruct(s interface{}) error {
+	value := deref(s)
+	if value.Kind() != reflect.Struct {
+		return ErrorValidateWrongType(reflect.Struct.String())
+	}
+	vType := value.Type()
+	return v.registerStruct(vType, vType.String())
+}
+
+func (v *Validator) registerStruct(vType reflect.Type, ruleName string) error {
 	rule := newStructRule(ruleName, vType)
 
 	for i := 0; i < vType.NumField(); i++ {

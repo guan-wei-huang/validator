@@ -60,7 +60,7 @@ func (v *Validator) storeRule(name string, rule *structRule) {
 }
 
 func (v *Validator) ValidateStruct(s interface{}) error {
-	value := deReference(s)
+	value := deref(s)
 	if value.Kind() != reflect.Struct {
 		return ErrorValidateWrongType(reflect.Struct.String())
 	}
@@ -68,7 +68,7 @@ func (v *Validator) ValidateStruct(s interface{}) error {
 	// register struct validate rule if cannot find rule in cache
 	valueType := value.Type()
 	if rule := v.loadRule(valueType.String()); rule == nil || (rule != nil && rule.structType != valueType) {
-		if err := v.registerStruct(valueType); err != nil {
+		if err := v.registerStruct(valueType, valueType.String()); err != nil {
 			return err
 		}
 	}

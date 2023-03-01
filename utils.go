@@ -90,7 +90,8 @@ func parseToFloat64(vType reflect.Kind, value interface{}) float64 {
 	return 0
 }
 
-func deReference(v interface{}) reflect.Value {
+// deref dereference v
+func deref(v interface{}) reflect.Value {
 	value := reflect.ValueOf(v)
 	for value.Kind() == reflect.Pointer && !value.IsNil() {
 		value = value.Elem()

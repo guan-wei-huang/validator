@@ -1,6 +1,7 @@
 package validate
 
 import (
+	"reflect"
 	"testing"
 
 	v10 "github.com/go-playground/validator/v10"
@@ -21,16 +22,22 @@ func toPtr[T int | string](v T) *T {
 	return &v
 }
 
-func combineValidateError(fields, rules []string) error {
+func combineValidateError(fields, rules []string) string {
 	if len(fields) != len(rules) {
-		return nil
+		return ""
 	}
 	es := make(ValidateErrors, 0, len(rules))
 	for i := range fields {
 		err := ErrorValidateFalse(fields[i], rules[i])
 		es = append(es, err)
 	}
-	return es
+	return es.Error()
+}
+
+func TestValidateWrongType(t *testing.T) {
+	validate := New()
+	err := validate.ValidateStruct("wrong type")
+	assert.EqualError(t, err, ErrorValidateWrongType(reflect.Struct.String()).Error())
 }
 
 func TestNumberCompare(t *testing.T) {
@@ -62,7 +69,33 @@ func TestNumberCompare(t *testing.T) {
 	assert.EqualError(t, err, combineValidateError(
 		[]string{"TestData.intGt", "TestData.IntPtrGt", "TestData.FloatGt", "TestData.IntEq", "TestData.IntLs"},
 		[]string{"gt=10", "gt=10", "gt=10.1", "eq=10", "ls=10"},
-	).Error())
+	))
+}
+
+func TestLen(t *testing.T) {
+	type TestData struct {
+		Str        string    `validate:"len=4"`
+		FloatSlice []float32 `validate:"len=2"`
+		UintArray  [2]uint   `validate:"len=2"`
+	}
+
+	validate := New()
+	err := validate.ValidateStruct(TestData{
+		Str:        "test",
+		FloatSlice: []float32{2.4, 3.7},
+		UintArray:  [2]uint{3, 5},
+	})
+	assert.NoError(t, err)
+
+	err = validate.ValidateStruct(TestData{
+		Str:        "wrong",
+		FloatSlice: []float32{1.3},
+		UintArray:  [2]uint{7},
+	})
+	assert.EqualError(t, err, combineValidateError(
+		[]string{"TestData.Str", "TestData.FloatSlice"},
+		[]string{"len=4", "len=2"},
+	))
 }
 
 func TestRequired(t *testing.T) {
@@ -96,7 +129,7 @@ func TestRequired(t *testing.T) {
 		[]string{"TestData.Num", "TestData.Str", "TestData.NumSlice", "TestData.NumPtr", "TestData.StrPtr",
 			"TestData.M", "TestData.C"},
 		[]string{"required", "required", "required", "required", "required", "required", "required"},
-	).Error())
+	))
 }
 
 func TestUnexportedField(t *testing.T) {
@@ -122,7 +155,7 @@ func TestRepeatNameStruct(t *testing.T) {
 	err := validate.ValidateStruct(TestData{
 		Num: 3,
 	})
-	assert.EqualError(t, err, combineValidateError([]string{"TestData.Num"}, []string{"gt=10"}).Error())
+	assert.EqualError(t, err, combineValidateError([]string{"TestData.Num"}, []string{"gt=10"}))
 
 	t.Run("different struct with the same name", func(t *testing.T) {
 		type TestData struct {
@@ -131,7 +164,7 @@ func TestRepeatNameStruct(t *testing.T) {
 		err := validate.ValidateStruct(TestData{
 			Str: "test",
 		})
-		assert.EqualError(t, err, combineValidateError([]string{"TestData.Str"}, []string{"len=3"}).Error())
+		assert.EqualError(t, err, combineValidateError([]string{"TestData.Str"}, []string{"len=3"}))
 	})
 }
 
@@ -168,7 +201,7 @@ func TestNestedStruct(t *testing.T) {
 		assert.EqualError(t, err, combineValidateError(
 			[]string{"TestData.Num", "TestData.Nested.Num", "TestData.Nested.Str"},
 			[]string{"gt=10", "gt=10", "len=4"},
-		).Error())
+		))
 	})
 
 	t.Run("undefined nested struct", func(t *testing.T) {
@@ -192,7 +225,7 @@ func TestNestedStruct(t *testing.T) {
 		assert.EqualError(t, err, combineValidateError(
 			[]string{"UndefNested.Nested.Num", "UndefNested.Nested.Str"},
 			[]string{"gt=10", "required"},
-		).Error())
+		))
 	})
 
 	t.Run("unexported field in nested struct", func(t *testing.T) {
@@ -215,7 +248,87 @@ func TestNestedStruct(t *testing.T) {
 		assert.EqualError(t, err, combineValidateError(
 			[]string{"Case.Num", "Case.Nested.str", "Case.Nested.intPtr", "Case.Nested.intSlice"},
 			[]string{"gt=10", "len=4", "eq=10", "len=2"},
-		).Error())
+		))
+	})
+}
+
+func TestRegisterByMap(t *testing.T) {
+	type Nested struct {
+		Nint int
+		Nstr string
+	}
+	type TestData struct {
+		Num      int
+		Str      string
+		IntSlice []int
+		M        map[int]int
+		Nested   Nested
+	}
+
+	validate := New()
+
+	t.Run("success", func(t *testing.T) {
+		err := validate.RegisterMapRule(TestData{}, map[string]interface{}{
+			"Num":      "gt=10,required",
+			"Str":      "len=4,required",
+			"IntSlice": "len=2",
+			"M":        "required",
+			"Nested": map[string]interface{}{
+				"Nint": "eq=3",
+				"Nstr": "len=2,required",
+			},
+		})
+		assert.NoError(t, err)
+
+		err = validate.ValidateStruct(TestData{
+			Num:      11,
+			Str:      "test",
+			IntSlice: []int{3, 4},
+			M:        make(map[int]int),
+			Nested: Nested{
+				Nint: 3,
+				Nstr: "tt",
+			},
+		})
+		assert.NoError(t, err)
+	})
+
+	t.Run("failed", func(t *testing.T) {
+		err := validate.RegisterMapRule(TestData{}, map[string]interface{}{
+			"Num":      "gt=10,required",
+			"Str":      "len=4,required",
+			"IntSlice": "len=2",
+			"M":        "required",
+			"Nested": map[string]interface{}{
+				"Nint": "eq=3",
+				"Nstr": "len=2,required",
+			},
+		})
+		assert.NoError(t, err)
+
+		err = validate.ValidateStruct(TestData{
+			Num:      8,
+			Str:      "test",
+			IntSlice: []int{3, 4},
+			M:        make(map[int]int),
+			Nested: Nested{
+				Nint: 2,
+				Nstr: "test",
+			},
+		})
+		assert.EqualError(t, err, combineValidateError(
+			[]string{"TestData.Num", "TestData.Nested.Nint", "TestData.Nested.Nstr"},
+			[]string{"gt=10", "eq=3", "len=2"},
+		))
+	})
+
+	t.Run("register failed", func(t *testing.T) {
+		err := validate.RegisterMapRule(TestData{}, map[string]interface{}{
+			"Num": "gt=10,unsupported",
+			"Str": "len=4",
+			"M":   "required",
+		})
+		assert.EqualError(t, err, ErrorValidateUnsupportedTag("unsupported").Error())
 	})
 }
 
