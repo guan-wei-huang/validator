@@ -2,7 +2,12 @@ package validate
 
 import (
 	"fmt"
+	"reflect"
 )
+
+func ErrorValidateInvalidTag(vType reflect.Kind, str string) error {
+	return fmt.Errorf("cannot parse %v to type %v", str, vType.String())
+}
 
 func ErrorValidateWrongType(expect string) error {
 	return fmt.Errorf("invalid validation error, expect value type: %v, but got nil", expect)

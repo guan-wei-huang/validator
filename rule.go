@@ -54,6 +54,8 @@ func isEqual(vType reflect.Kind, value, param interface{}) bool {
 		return parseToUint64(vType, value) == param.(uint64)
 	case reflect.Float32, reflect.Float64:
 		return parseToFloat64(vType, value) == param.(float64)
+	case reflect.Complex64, reflect.Complex128:
+		return parseToComplex128(vType, value) == param.(complex128)
 	}
 	return false
 }

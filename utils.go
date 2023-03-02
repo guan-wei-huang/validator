@@ -45,7 +45,7 @@ func parseStringToType(pType reflect.Kind, str string) (interface{}, error) {
 	case isComplex(pType):
 		return strconv.ParseComplex(str, 128)
 	}
-	return nil, ErrorValidateInvalidTag()
+	return nil, ErrorValidateInvalidTag(pType, str)
 }
 
 func parseToInt64(vType reflect.Kind, value interface{}) int64 {
@@ -86,6 +86,16 @@ func parseToFloat64(vType reflect.Kind, value interface{}) float64 {
 		return float64(value.(float32))
 	case reflect.Float64:
 		return value.(float64)
+	}
+	return 0
+}
+
+func parseToComplex128(vType reflect.Kind, value interface{}) complex128 {
+	switch vType {
+	case reflect.Complex64:
+		return complex128(value.(complex64))
+	case reflect.Complex128:
+		return value.(complex128)
 	}
 	return 0
 }

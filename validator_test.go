@@ -42,33 +42,55 @@ func TestValidateWrongType(t *testing.T) {
 
 func TestNumberCompare(t *testing.T) {
 	type TestData struct {
-		intGt    int     `validate:"gt=10"`
-		IntPtrGt *int    `validate:"gt=10"`
-		FloatGt  float32 `validate:"gt=10.1"`
-		IntEq    int     `validate:"eq=10"`
-		IntLs    int     `validate:"ls=10"`
+		intGt     int       `validate:"gt=10"`
+		IntPtrGt  *int      `validate:"gt=10"`
+		FloatGt   float32   `validate:"gt=10.1"`
+		IntEq     int       `validate:"eq=10"`
+		IntLs     int       `validate:"ls=10"`
+		Int8Eq    int8      `validate:"eq=10"`
+		Int16Eq   int16     `validate:"eq=10"`
+		Int32Eq   int32     `validate:"eq=10"`
+		Int64Eq   int64     `validate:"eq=10"`
+		UintEq    uint      `validate:"eq=1"`
+		Uint64Eq  uint64    `validate:"eq=2"`
+		ComplexEq complex64 `validate:"eq=10+2i"`
 	}
 
 	validate := New()
 	err := validate.ValidateStruct(TestData{
-		intGt:    11,
-		IntPtrGt: toPtr(11),
-		FloatGt:  10.3,
-		IntEq:    10,
-		IntLs:    9,
+		intGt:     11,
+		IntPtrGt:  toPtr(11),
+		FloatGt:   10.3,
+		IntEq:     10,
+		IntLs:     9,
+		Int8Eq:    10,
+		Int16Eq:   10,
+		Int32Eq:   10,
+		Int64Eq:   10,
+		UintEq:    1,
+		Uint64Eq:  2,
+		ComplexEq: 10 + 2i,
 	})
 	assert.ErrorIs(t, err, nil)
 
 	err = validate.ValidateStruct(TestData{
-		intGt:    9,
-		IntPtrGt: toPtr(9),
-		FloatGt:  9.2,
-		IntEq:    9,
-		IntLs:    11,
+		intGt:     9,
+		IntPtrGt:  toPtr(9),
+		FloatGt:   9.2,
+		IntEq:     9,
+		IntLs:     11,
+		Int8Eq:    6,
+		Int16Eq:   7,
+		Int32Eq:   8,
+		Int64Eq:   9,
+		UintEq:    2,
+		Uint64Eq:  3,
+		ComplexEq: 10,
 	})
 	assert.EqualError(t, err, combineValidateError(
-		[]string{"TestData.intGt", "TestData.IntPtrGt", "TestData.FloatGt", "TestData.IntEq", "TestData.IntLs"},
-		[]string{"gt=10", "gt=10", "gt=10.1", "eq=10", "ls=10"},
+		[]string{"TestData.intGt", "TestData.IntPtrGt", "TestData.FloatGt", "TestData.IntEq", "TestData.IntLs", "TestData.Int8Eq", "TestData.Int16Eq",
+			"TestData.Int32Eq", "TestData.Int64Eq", "TestData.UintEq", "TestData.Uint64Eq", "TestData.ComplexEq"},
+		[]string{"gt=10", "gt=10", "gt=10.1", "eq=10", "ls=10", "eq=10", "eq=10", "eq=10", "eq=10", "eq=1", "eq=2", "eq=10+2i"},
 	))
 }
 
@@ -250,6 +272,29 @@ func TestNestedStruct(t *testing.T) {
 			[]string{"gt=10", "len=4", "eq=10", "len=2"},
 		))
 	})
+}
+
+func TestRegister(t *testing.T) {
+	type TestData struct {
+		Num int    `validate:"eq=2"`
+		Str string `validate:"len=3"`
+	}
+	validate := New()
+
+	err := validate.RegisterStruct("wrong type")
+	assert.EqualError(t, err, ErrorValidateWrongType(reflect.Struct.String()).Error())
+
+	err = validate.RegisterStruct(&TestData{})
+	assert.NoError(t, err)
+
+	err = validate.ValidateStruct(&TestData{
+		Num: 1,
+		Str: "test",
+	})
+	assert.EqualError(t, err, combineValidateError(
+		[]string{"TestData.Num", "TestData.Str"},
+		[]string{"eq=2", "len=3"},
+	))
 }
 
 func TestRegisterByMap(t *testing.T) {
