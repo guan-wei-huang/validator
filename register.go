@@ -14,6 +14,7 @@ func parseTag(fieldType reflect.Type, tag string, isPtr bool) ([]*validateFn, er
 	rules := strings.Split(tag, ",")
 	fs := make([]*validateFn, 0, len(rules))
 	for _, r := range rules {
+		var vfn *validateFn
 		name, param, _ := strings.Cut(r, "=")
 		switch name {
 		case "gt", "eq", "ls":
@@ -21,18 +22,33 @@ func parseTag(fieldType reflect.Type, tag string, isPtr bool) ([]*validateFn, er
 			if err != nil {
 				return nil, err
 			}
-			fs = append(fs, castApplyRuleFn(name, p, r))
+			vfn = castApplyRuleFn(name, p, r)
+
+		case "min", "max":
+			if !isArrayBased(fieldType.Kind()) {
+				return nil, ErrorValidateUnsupportedTag(r)
+			}
+			ftype := fieldType.Elem()
+			p, err := parseStringToType(ftype.Kind(), param)
+			if err != nil {
+				return nil, err
+			}
+			vfn = castApplyRuleFn(name, p, r)
+
 		case "len":
 			p, err := parseStringToType(reflect.Int, param)
 			if err != nil {
 				return nil, err
 			}
-			fs = append(fs, castApplyRuleFn(name, p, r))
+			vfn = castApplyRuleFn(name, p, r)
+
 		case "required":
-			fs = append(fs, castApplyRuleFn(name, isPtr, r))
+			vfn = castApplyRuleFn(name, isPtr, r)
+
 		default:
 			return nil, ErrorValidateUnsupportedTag(r)
 		}
+		fs = append(fs, vfn)
 	}
 
 	return fs, nil

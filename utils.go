@@ -7,31 +7,23 @@ import (
 )
 
 func isInt(kind reflect.Kind) bool {
-	if kind >= reflect.Int && kind <= reflect.Int64 {
-		return true
-	}
-	return false
+	return kind >= reflect.Int && kind <= reflect.Int64
 }
 
 func isUint(kind reflect.Kind) bool {
-	if kind >= reflect.Uint && kind <= reflect.Uint64 {
-		return true
-	}
-	return false
+	return kind >= reflect.Uint && kind <= reflect.Uint64
 }
 
 func isFloat(kind reflect.Kind) bool {
-	if kind >= reflect.Float32 && kind <= reflect.Float64 {
-		return true
-	}
-	return false
+	return kind >= reflect.Float32 && kind <= reflect.Float64
 }
 
 func isComplex(kind reflect.Kind) bool {
-	if kind == reflect.Complex64 || kind == reflect.Complex128 {
-		return true
-	}
-	return false
+	return kind == reflect.Complex64 || kind == reflect.Complex128
+}
+
+func isArrayBased(kind reflect.Kind) bool {
+	return kind == reflect.Array || kind == reflect.Slice
 }
 
 func parseStringToType(pType reflect.Kind, str string) (interface{}, error) {

@@ -5,8 +5,8 @@ import (
 	"reflect"
 )
 
-func ErrorValidateInvalidTag(vType reflect.Kind, str string) error {
-	return fmt.Errorf("cannot parse %v to type %v", str, vType.String())
+func ErrorValidateInvalidTag(toType reflect.Kind, str string) error {
+	return fmt.Errorf("cannot parse %v to type %v", str, toType.String())
 }
 
 func ErrorValidateWrongType(expect string) error {

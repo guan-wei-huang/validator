@@ -22,6 +22,8 @@ var fnTable = map[string]applyRuleFn{
 	"ls":       isLess,
 	"len":      isLen,
 	"required": isRequired,
+	"min":      minValue,
+	"max":      maxValue,
 }
 
 func castApplyRuleFn(funcName string, param interface{}, tag string) *validateFn {
@@ -94,4 +96,14 @@ func isRequired(vType reflect.Kind, value, param interface{}) bool {
 	}
 
 	return !reflect.ValueOf(value).IsZero()
+}
+
+func minValue(vType reflect.Kind, value, param interface{}) bool {
+	// TODO
+	return true
+}
+
+func maxValue(vType reflect.Kind, value, param interface{}) bool {
+	// TODO
+	return true
 }

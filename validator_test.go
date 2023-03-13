@@ -154,6 +154,33 @@ func TestRequired(t *testing.T) {
 	))
 }
 
+func TestMinMax(t *testing.T) {
+	t.Skip()
+	type TestData struct {
+		MinSlice []int     `validate:"min=2"`
+		MaxSlice []float32 `validate:"max=100.2"`
+		Array    [2]int    `validate:"min=10,max=30"`
+	}
+
+	validate := New()
+	err := validate.ValidateStruct(TestData{
+		MinSlice: []int{3, 4, 6},
+		MaxSlice: []float32{10.2, 40.2},
+		Array:    [2]int{13, 30},
+	})
+	assert.NoError(t, err)
+
+	err = validate.ValidateStruct(TestData{
+		MinSlice: []int{5, 6, 1},
+		MaxSlice: []float32{20, 30, 1000},
+		Array:    [2]int{3, 41},
+	})
+	assert.EqualError(t, err, combineValidateError(
+		[]string{"MinSlice", "MaxSlice", "Array"},
+		[]string{"min=2", "max=100.2", "min=10"},
+	))
+}
+
 func TestUnexportedField(t *testing.T) {
 	validate := New()
 	assert.NotPanics(t, func() {
