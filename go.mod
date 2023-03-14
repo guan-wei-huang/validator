@@ -1,4 +1,4 @@
-module validate
+module github.com/guan-wei-huang/validator
 
 go 1.19
 

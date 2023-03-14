@@ -4,7 +4,6 @@ import (
 	"reflect"
 	"testing"
 
-	v10 "github.com/go-playground/validator/v10"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -402,36 +401,4 @@ func TestRegisterByMap(t *testing.T) {
 		})
 		assert.EqualError(t, err, ErrorValidateUnsupportedTag("unsupported").Error())
 	})
-}
-
-func BenchmarkPackage(b *testing.B) {
-	type TestData struct {
-		IntGt   int  `validate:"gt=10"`
-		IntEq   int  `validate:"eq=10"`
-		Require *int `validate:"required"`
-	}
-	validate := New()
-	for i := 0; i < b.N; i++ {
-		validate.ValidateStruct(TestData{
-			IntGt:   12,
-			IntEq:   10,
-			Require: toPtr(2),
-		})
-	}
-}
-
-func BenchmarkV10(b *testing.B) {
-	type TestData struct {
-		IntGt   int  `validate:"gt=10"`
-		IntEq   int  `validate:"eq=10"`
-		Require *int `validate:"required"`
-	}
-	v := v10.New()
-	for i := 0; i < b.N; i++ {
-		v.Struct(TestData{
-			IntGt:   12,
-			IntEq:   10,
-			Require: toPtr(2),
-		})
-	}
 }
